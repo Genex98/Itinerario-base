@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+     {% block extra_css %}{% endblock %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Flask MVC - CRUD{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Tu CSS personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilo.css') }}">
+</head>
+<body>
+   
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container"> 
+        <ul class="navbar-nav d-flex flex-row flex-wrap align-items-center">
+            <!-- Inicio -->
+            <li class="nav-item me-3">
+                <a class="nav-link d-flex align-items-center" href="{{ url_for('dashboard.index') }}">
+                    <img class="nav-logo" src="{{ url_for('static', filename='img/Logo-blanco.png') }}" alt="Logo">
+                    <span>Inicio</span>
+                </a>
+            </li>
+
+            <!-- Usuarios -->
+            <li class="nav-item me-3">
+                <a class="nav-link d-flex align-items-center" href="{{ url_for('usuario.dashboard') }}">
+                    <img class="nav-icono" src="{{ url_for('static', filename='img/usuario-add.png') }}" alt="Usuarios">
+                    <span>Usuarios</span>
+                </a>
+            </li>
+
+            <!-- Gestión de Guión -->
+            <li class="nav-item me-3">
+                
+                <a class="nav-link" href="{{ url_for('guion.dashboard') }}"> 
+                    <img class="nav-icono" src="{{ url_for('static', filename='img/guion.png') }}" alt="Guion">
+                    <span>Gestión de Guión</span>
+                    </a>
+            </li>
+
+            <!-- Otros enlaces -->
+            <li class="nav-item me-3">
+                <a class="nav-link" href="#">
+                <img class="nav-icono" src="{{ url_for('static', filename='img/pelota.png') }}" alt="Pelota">
+                     Guion en Vivo</a>
+            </li>
+
+            <li class="nav-item me-3">
+                <a class="nav-link" href="#">
+                <img class="nav-icono" src="{{ url_for('static', filename='img/Dinero.png') }}" alt="Patrocinantes">    
+                    Patrocinantes</a>
+            </li>
+
+
+            <li class="nav-item me-3">
+                <a class="nav-link" href="#">
+                <img class="nav-icono" src="{{ url_for('static', filename='img/Contratos.png') }}" alt="Contratos">Contratos</a>
+            </li>
+            <li class="nav-item me-3">
+                <a class="nav-link" href="#">
+                <img class="nav-icono" src="{{ url_for('static', filename='img/Reels.png') }}" alt="Reels"> Reels</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">Perfil</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+
+
+    
+    <main class="container mt-3">
+        <!-- Mensajes flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'warning' else 'warning' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Contenido principal -->
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer class="bg text-white text-center py-3 mt-5">
+        <p class="mb-0">Estadio Antonio Herrera Gutierrez</p>
+    </footer>
+    
+    <!-- Bootstrap JS (necesario para los modales) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- JavaScript personalizado -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

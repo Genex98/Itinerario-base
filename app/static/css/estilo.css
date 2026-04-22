@@ -1,0 +1,128 @@
+
+/* CSS PRINCIPAL DE BASE */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #dff0fa;
+}
+
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+.nav-logo {
+    height: 40px;      /* Ajusta la altura a la del texto de tu menú */
+    width: auto;       /* Mantiene la proporción original */
+    vertical-align:     middle; /* Lo alinea al centro del texto */
+    margin-right: 5px;     /* Separa el logo de "Inicio" */
+}
+
+.nav-icono {
+    height: 30px;      /* Ajusta la altura a la del texto de tu menú */
+    width: auto;       /* Mantiene la proporción original */
+    vertical-align:     middle; /* Lo alinea al centro del texto */
+    margin-right: 5px;     /* Separa el logo de "Inicio" */
+
+}
+
+.navbar {
+    background-color: #a70303eb;
+    color: white;
+    padding: 2px;
+    display: flex;
+    align-items: center; /* Centra verticalmente logo y links */
+    padding: 5px 5px;
+}
+
+
+.nav-link
+ {
+   
+    color: white;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 3px; /* Ajusta este valor para separar más o menos los elementos */
+    align-items: center;
+}
+
+nav ul li {
+    margin-right: 0px;
+
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+nav ul li a:hover {
+    text-decoration: underline;
+}
+
+
+button {
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+button:hover {
+    background-color: #0052a3;
+}
+
+footer {
+    background-color: #272727a8;;
+    color: rgba(14, 1, 1, 0.329);
+    text-align: center;
+    padding: 2px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    font-style: italic;
+}
+
+main {
+    padding: 20px;
+    margin-bottom: 60px;
+}
+
+
+
+/* ESTILO DE LISTADOS */
+
+.card-header {
+    background: linear-gradient(45deg, #043f7b, #479bef);
+    color: white;
+    padding: 15px 20px;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0 !important; /* Redondeado superior */
+}
+
+/* Estilo para el encabezado de la tabla (thead) */
+.card-thead th {
+    background-color: #0e5193; /* Fondo gris muy claro */
+    color: #ffffff;            /* Texto en azul oscuro */
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Opcional: Hacer la tarjeta más suave */
+.card {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-radius: 10px;
+}

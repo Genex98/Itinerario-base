@@ -1,0 +1,71 @@
+/* Título */
+
+.titulo {
+    font-size: 2.2rem;     /* Tamaño equilibrado */
+    font-weight: 800;      /* Grueso pero moderno */
+    color: #0b2a48;        /* Color gris azulado profesional */
+    letter-spacing: -1px;  /* Letras un poco más juntas (estilo Apple/SaaS) */
+    margin: 0;             /* Evita espacios extra */
+    line-height: 1.1;
+    text-transform: none;  /* Mantiene las mayúsculas como las escribas */
+}
+
+
+/* Botón */
+.btn-nuevo-guion {
+    background: linear-gradient(45deg, #397724, #12cc34);
+    color: white !important;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-block;
+    transition: 0.3s;
+}
+
+.btn-nuevo-guion:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+}
+
+/* Tarjetas */
+.tarjeta {
+    padding: 10px;
+    border-radius: 10px;
+    color: white;
+    min-width: 100px;
+    flex: 1;
+    text-align: center;
+}
+
+.tarjeta span { font-size: 0.7rem; font-weight: bold; display: block; }
+.tarjeta h2 { font-size: 1.4rem; margin: 0; }
+
+
+/* Colores (se mantienen igual) */
+.azul {background: linear-gradient(45deg, #007bff, #00d4ff);
+    color: white;
+    padding: 5px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+
+.amarillo { background: linear-gradient(45deg,#fb6d6d, #910303);
+    color: white;
+    padding: 5px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);}
+
+.naranja { background: linear-gradient(45deg, #f58b01, #f9c449);
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1); }

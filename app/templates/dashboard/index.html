@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Panel Principal - Producción{% endblock %}
+
+{% block content %}
+
+<!-- Tu CSS personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/panel.css') }}">
+
+<div class="panel-container">
+    <h1> <strong>Panel principal</strong></h1>
+
+    <div class="cards-container">
+        <!-- Tarjeta Usuarios -->
+        <div class="card-custom">
+            <div class="card-title">Usuarios En línea</div>
+            <div class="user-stats">
+                <div class="user-icon"> <img class="user" src="{{ url_for('static', filename='img/usuario-online.png') }}" alt="Usuario"> </div>
+                <div style="text-align: left;">
+                    <b style="font-size: 1.2rem;">10 Usuarios</b><br>
+                    conectados
+                </div>
+            </div>
+            <div class="dept-info">
+                <p>• 5 de Dpto de Medios</p>
+                <p>• 5 Dto de Palco de Operaciones</p>
+            </div>
+        </div>
+
+        <!-- Tarjeta Guion Actual -->
+        <div class="card-custom">
+            <div class="card-title">
+                <span class="live-tag">LIVE</span> Guion Actual
+            </div>
+            <div class="event-info">
+                <p>01-Mayo-2026</p>
+                <h3>Cardenales vs Bravos</h3>
+            </div>
+
+            <div class="status-list">
+                <div class="status-item">
+                    <div class="dot red"></div>
+                    <div class="label bg-red">Warning Song</div>
+                </div>
+                <div class="status-item">
+                    <div class="dot yellow"></div>
+                    <div class="label bg-yellow">Saludos de animadores</div>
+                </div>
+                <div class="status-item">
+                    <div class="dot green"></div>
+                    <div class="label bg-green">Salen "Los guaritos"</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

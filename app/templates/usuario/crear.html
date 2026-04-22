@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Guión{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">🎬 Crear Nuevo Guión</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="guionForm">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.titulo.label(class="form-label") }}
+                        {{ form.titulo(class="form-control", id="titulo") }}
+                        <div id="duplicadoWarning" class="text-danger" style="display:none;">
+                            ⚠️ Ya existe un guión con este título y fecha
+                        </div>
+                    </div>
+                    
+                    <!-- Selector de Tipo de Guión -->
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Guión</label>
+                        <select class="form-select" id="tipoGuion" name="tipo_guion">
+                            <option value="pregame">PRE.GAME</option>
+                            <option value="init">INIT</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.descripcion.label(class="form-label") }}
+                        {{ form.descripcion(class="form-control", rows=2) }}
+                    </div>
+                    
+                    <!-- Campos que cambian según PRE.GAME o INIT -->
+                    <div id="pregameFields">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.fecha_evento.label(class="form-label") }}
+                                {{ form.fecha_evento(class="form-control", type="date", id="fecha_evento") }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.hora_inicio.label(class="form-label") }}
+                                {{ form.hora_inicio(class="form-control", type="time") }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.hora_fin.label(class="form-label") }}
+                                {{ form.hora_fin(class="form-control", type="time") }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.tiempo_estimado.label(class="form-label") }}
+                                {{ form.tiempo_estimado(class="form-control", type="number") }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos específicos para INIT -->
+                    <div id="initFields" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Seleccionar INIT</label>
+                                <select class="form-select" id="selectInit" name="select_init">
+                                    <option value="">Seleccione una opción</option>
+                                    <option value="primer_init">Primer INIT</option>
+                                    <option value="segundo_init">Segundo INIT</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.tipo_evento.label(class="form-label") }}
+                        {{ form.tipo_evento(class="form-select") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.salida.label(class="form-label") }}
+                        {{ form.salida(class="form-control", rows=3, placeholder="Texto que se mostrará en pantalla...") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.instrucciones.label(class="form-label") }}
+                        {{ form.instrucciones(class="form-control", rows=5, placeholder="Instrucciones para los trabajadores...") }}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <a href="{{ url_for('guion.dashboard') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/usuario_crear.js') }}"></script>
+{% endblock %}
