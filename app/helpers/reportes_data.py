@@ -219,7 +219,7 @@ def _datos_guiones(filtros, fi, ff):
         'total': len(datos), 'borradores': borradores,
         'publicados': publicados, 'en_vivo': en_vivo,
         'finalizados': finalizados,
-        'tiempo_total': _formatear_tiempo(tiempo_total_seg),
+        'tiempo_total_seg': tiempo_total_seg,
         'promedio_seg': round(tiempo_total_seg / len(datos)) if datos else 0,
     }
     datos = _sanitizar_para_reporte(modulo, datos)
@@ -394,11 +394,11 @@ def _datos_contratos(filtros, fi, ff):
         'bronce': bronce,
         'plata': plata,
         'oro': oro,
-        'monto_total': f"${monto_total:,.0f}",
-        'monto_promedio': f"${monto_promedio:,.0f}",
-        'monto_vigentes': f"${monto_vigentes:,.0f}",
-        'monto_min': f"${min(montos):,.0f}" if montos else "$0",
-        'monto_max': f"${max(montos):,.0f}" if montos else "$0",
+        'monto_total': round(monto_total, 2),
+        'monto_promedio': round(monto_promedio, 2),
+        'monto_vigentes': round(monto_vigentes, 2),
+        'monto_min': round(min(montos), 2) if montos else 0,
+        'monto_max': round(max(montos), 2) if montos else 0,
         'vigentes_porcentaje': vigentes_pct,
         'top_patrocinadores': dict(top_pats),
     }
@@ -449,10 +449,10 @@ def _datos_balance(filtros, fi, ff):
     montos_lista = [d.get('monto', 0) for d in datos]
     kpis = {
         'total_pagos': len(datos),
-        'monto_total': f"${total:,.0f}",
-        'promedio': f"${total / len(datos):,.0f}" if datos else "$0",
-        'monto_min': f"${min(montos_lista):,.0f}" if montos_lista else "$0",
-        'monto_max': f"${max(montos_lista):,.0f}" if montos_lista else "$0",
+        'monto_total': round(total, 2),
+        'promedio': round(total / len(datos), 2) if datos else 0,
+        'monto_min': round(min(montos_lista), 2) if montos_lista else 0,
+        'monto_max': round(max(montos_lista), 2) if montos_lista else 0,
         'tipos_pago': tipos,
     }
     datos = _sanitizar_para_reporte(modulo, datos)
@@ -502,7 +502,7 @@ def _datos_tareas(filtros, fi, ff):
     pendientes = sum(1 for d in datos if d.get('estado') == 'Pendiente')
     en_progreso = sum(1 for d in datos if d.get('estado') == 'En Progreso')
     completadas = sum(1 for d in datos if d.get('estado') == 'Completada')
-    completadas_pct = f"{completadas * 100 // len(datos)}%" if datos else "0%"
+    completadas_pct = round(completadas * 100 / len(datos)) if datos else 0
     kpis = {
         'total': len(datos), 'pendientes': pendientes,
         'en_progreso': en_progreso, 'completadas': completadas,
@@ -654,8 +654,8 @@ def _datos_reels(filtros, fi, ff):
     duracion_total_min = duracion_total_seg / 60
     kpis = {
         'total': len(datos), 'total_videos': total_videos,
-        'duracion_total': f"{duracion_total_min:.0f} min",
-        'duracion_promedio': f"{duracion_total_min / len(datos):.0f} min" if datos else "0 min",
+        'duracion_total': round(duracion_total_seg),
+        'duracion_promedio': round(duracion_total_seg / len(datos)) if datos else 0,
     }
     return datos, kpis
 

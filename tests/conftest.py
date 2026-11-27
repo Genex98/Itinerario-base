@@ -1,8 +1,3 @@
-"""Fixtures de pytest para Itinerario.
-
-Regla dura: los tests corren SOLO contra las BDs *_test, clonadas desde los
-.sql de la raíz. Nunca tocan estadio_db / seguridad reales.
-"""
 import os
 import re
 import sys
@@ -12,12 +7,40 @@ from pathlib import Path
 import pymysql
 import pytest
 from pymysql.constants import CLIENT
+from pymysql.cursors import DictCursor
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 # nombre original -> nombre de prueba (solo esquemas clonados)
 TEST_DBS = {'estadio_db': 'estadio_db_test', 'seguridad': 'seguridad_test'}
+
+# Hay consultas de la app que escriben el esquema "seguridad." de forma
+# explícita (JOIN seguridad.usuarios...). En tests se reescriben para que
+# apunten a seguridad_test y nunca lean la BD real.
+RE_ESQUEMA = re.compile(r'(?<![A-Za-z0-9])(?:)?(estadio_db|seguridad)(?:`)?\.')
+
+
+def _redirigir_esquemas(sql):
+    if not sql or not isinstance(sql, str):
+        return sql
+    return RE_ESQUEMA.sub(lambda m: f'{m.group(1)}_test.', sql)
+
+
+class _DictCursorTest(DictCursor):
+    """Cursor que redirige cualquier referencia a los esquemas reales."""
+
+    def execute(self, query, args=None):
+        return super().execute(_redirigir_esquemas(query), args)
+
+    def executemany(self, query, args):
+        return super().executemany(_redirigir_esquemas(query), args)
+
+# dumps de respaldo si el .sql de la raíz viene vacío
+DUMPS_RESERVA = {
+    'estadio_db.sql': ROOT / 'Docss' / 'estadio_db.sql',
+    'seguridad.sql': ROOT / 'Docss' / 'seguridad.sql',
+}
 
 
 def _creds():
@@ -29,14 +52,21 @@ def _creds():
     }
 
 
+def _ruta_dump(archivo):
+    ruta = ROOT / archivo
+    if ruta.exists() and ruta.stat().st_size > 100:
+        return ruta
+    return DUMPS_RESERVA[archivo]
+
+
 def _aplicar_dump(conn, archivo):
     """Aplica un .sql de la raíz sobre la BD de prueba.
 
     Los dumps traen CREATE DATABASE / USE con los nombres reales; se renombra
     únicamente esos tokens backtick-eados para redirigir todo al *_test.
     """
-    sql = (ROOT / archivo).read_text(encoding='utf-8')
-    sql = re.sub(r'`(estadio_db|seguridad)`', r'`\1_test`', sql)
+    sql = _ruta_dump(archivo).read_text(encoding='utf-8')
+    sql = re.sub(r'(estadio_db|seguridad)', r'\1_test', sql)
     with conn.cursor() as cur:
         cur.execute(sql)  # requiere MULTI_STATEMENTS en la conexión
         while cur.nextset():
@@ -51,8 +81,8 @@ def bases_de_prueba():
     try:
         with conn.cursor() as cur:
             for test in TEST_DBS.values():
-                cur.execute(f'DROP DATABASE IF EXISTS `{test}`')
-                cur.execute(f'CREATE DATABASE `{test}` DEFAULT CHARACTER SET utf8mb4')
+                cur.execute(f'DROP DATABASE IF EXISTS {test}')
+                cur.execute(f'CREATE DATABASE {test} DEFAULT CHARACTER SET utf8mb4')
         _aplicar_dump(conn, 'estadio_db.sql')
         _aplicar_dump(conn, 'seguridad.sql')
     finally:
@@ -62,11 +92,21 @@ def bases_de_prueba():
 
 @pytest.fixture()
 def app(monkeypatch):
-    # apunta la config a las BDs de prueba ANTES de crear la app
+    # apunta la config a las BDs de prueba ANTES de crear la app.
+    # monkeypatch.setitem restaura la config real al terminar cada test.
     from app import config
     for origen, test in TEST_DBS.items():
-        config.DATABASE_CONFIG[origen]['database'] = test
+        monkeypatch.setitem(config.DATABASE_CONFIG[origen], 'database', test)
+        # permite Database.get_connection('estadio_db_test') además del
+        # nombre lógico 'estadio_db'; ambas conexiones caen en la BD de prueba.
+        monkeypatch.setitem(
+            config.DATABASE_CONFIG, test, {**config.DATABASE_CONFIG[origen], 'database': test}
+        )
     monkeypatch.setenv('SECRET_KEY', 'clave-de-test')
+
+    # redirige también las consultas que nombran el esquema de forma explícita
+    import app.database as database
+    monkeypatch.setattr(database, 'DictCursor', _DictCursorTest)
 
     # nunca enviar correos reales
     from app.helpers import email_service
@@ -78,6 +118,15 @@ def app(monkeypatch):
     application = create_app()
     application.config['TESTING'] = True
     application.config['WTF_CSRF_ENABLED'] = False
+
+    # verificación dura: cada conexión debe estar en su BD *_test
+    with application.app_context():
+        for origen, test in TEST_DBS.items():
+            with database.Database.get_connection(origen).cursor() as cur:
+                cur.execute('SELECT DATABASE() AS db')
+                actual = cur.fetchone()['db']
+            assert actual == test, f'{origen} apunta a {actual}, se esperaba {test}'
+
     yield application
 
 

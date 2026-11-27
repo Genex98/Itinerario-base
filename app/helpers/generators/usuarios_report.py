@@ -8,7 +8,7 @@ class UsuariosReport(BaseReportGenerator):
     TITULO = 'REPORTE DE USUARIOS'
     COLUMNAS = [
         ('Nombre', 'nombre', 110), ('Email', 'email', 120),
-        ('Rol', 'rol', 70), ('Depto', 'depto', 70), ('Estado', 'estado', 55),
+        ('Rol', 'rol', 70), ('Depto', 'departamento', 70), ('Estado', 'activo', 55),
     ]
 
     def _post_table_sections(self, kpis, opciones):

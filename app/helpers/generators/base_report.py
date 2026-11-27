@@ -9,6 +9,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+from app.helpers.reportes_analytics import Severity
 
 
 class BaseReportGenerator:
@@ -45,8 +46,8 @@ class BaseReportGenerator:
         if not col_ids:
             return self.COLUMNAS
 
-        from app.helpers.reportes_campos import CAMPOS_DISPONIBLES
-        campos = CAMPOS_DISPONIBLES.get(self.MODULO, {})
+        from app.helpers.reportes_definition import get_fields
+        campos = get_fields(self.MODULO)
         columnas = []
         for key in col_ids:
             if key in campos:
@@ -89,24 +90,21 @@ class BaseReportGenerator:
             )
 
     def _tipo_campo(self, key):
-        """Obtiene el tipo de campo desde CAMPOS_DISPONIBLES."""
-        from app.helpers.reportes_campos import CAMPOS_DISPONIBLES
-        campo = CAMPOS_DISPONIBLES.get(self.MODULO, {}).get(key, {})
-        return campo.get('type', 'texto')
+        """Obtiene el tipo de campo desde el registro central."""
+        from app.helpers.reportes_definition import get_field_type
+        return get_field_type(self.MODULO, key)
 
     def _es_numerico(self, key):
         """True si el campo se puede sumar en subtotales."""
-        from app.helpers.reportes_campos import CAMPOS_DISPONIBLES, CAMPOS_NUMERICOS
-        campo = CAMPOS_DISPONIBLES.get(self.MODULO, {}).get(key, {})
-        return campo.get('type', '') in CAMPOS_NUMERICOS
+        from app.helpers.reportes_definition import is_numeric
+        return is_numeric(self.MODULO, key)
 
     def _formatear_celda(self, item, columna, tipo_campo):
         """Formatea un valor según tipo de campo."""
-        from app.helpers.reportes_campos import FORMATTERS
+        from app.helpers.reportes_definition import format_cell
         key = columna[1]
         value = item.get(key)
-        formatter = FORMATTERS.get(tipo_campo, FORMATTERS['texto'])
-        texto = formatter(value)
+        texto = format_cell(self.MODULO, key, value)
         max_chars = max(10, columna[2] // 5)
         if len(texto) > max_chars:
             texto = texto[:max_chars - 2] + '..'
@@ -181,6 +179,224 @@ class BaseReportGenerator:
     def _post_table_sections(self, kpis, opciones):
         """Hook para distribuciones. Override en subclases."""
         return []
+
+    # ── Secciones de Analítica (FASE 4E) ───────────────────────────
+
+    def _seccion_analytics(self, analytics_result):
+        """Renderiza AnalyticsResult completo: KPIs + alertas + insights + rankings + distribuciones + tendencias."""
+        story = []
+        if not analytics_result:
+            return story
+
+        story.append(Spacer(1, 8))
+        story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#1e40af'), spaceAfter=6))
+        story.append(Paragraph("<b>Análisis Detallado</b>", self.style_normal))
+        story.append(Spacer(1, 6))
+
+        # KPIs
+        if analytics_result.metrics:
+            story.extend(self._analytics_kpis(analytics_result.metrics))
+
+        # Alertas
+        if analytics_result.alerts:
+            story.extend(self._analytics_alertas(analytics_result.alerts))
+
+        # Insights
+        if analytics_result.insights:
+            story.extend(self._analytics_insights(analytics_result.insights))
+
+        # Rankings
+        if analytics_result.rankings:
+            story.extend(self._analytics_rankings(analytics_result.rankings))
+
+        # Distribuciones
+        if analytics_result.distributions:
+            story.extend(self._analytics_distributions(analytics_result.distributions))
+
+        # Tendencias
+        if analytics_result.trends:
+            story.extend(self._analytics_trends(analytics_result.trends))
+
+        return story
+
+    def _analytics_kpis(self, metrics):
+        story = []
+        label_map = {
+            'total': 'Total', 'vigentes': 'Vigentes', 'vencidos': 'Vencidos',
+            'borradores': 'Borradores', 'vigentes_pct': '% Vigentes',
+            'monto_total': 'Monto Total', 'monto_promedio': 'Monto Promedio',
+            'monto_min': 'Monto Mín.', 'monto_max': 'Monto Máx.',
+            'total_pagos': 'Total Pagos', 'activos': 'Activos',
+            'inactivos': 'Inactivos', 'activos_pct': '% Activos',
+            'en_espera': 'En Espera', 'en_reparacion': 'En Reparación',
+            'reparados': 'Reparados', 'dados_baja': 'Dados de Baja',
+            'promedio_dias': 'Días Prom.', 'max_dias': 'Máx. Días',
+            'min_dias': 'Mín. Días', 'pendientes': 'Pendientes',
+            'en_progreso': 'En Progreso', 'completadas': 'Completadas',
+            'completadas_pct': '% Completadas', 'total_cantidad': 'Cantidad Total',
+            'total_entregada': 'Entregada', 'tasa_entrega': '% Entrega',
+            'brecha': 'Brecha', 'costo_total': 'Costo Total',
+            'costo_promedio': 'Costo Prom.', 'costo_min': 'Costo Mín.',
+            'costo_max': 'Costo Máx.', 'publicados': 'Publicados',
+            'en_vivo': 'En Vivo', 'finalizados': 'Finalizados',
+            'tiempo_total': 'Tiempo Total', 'tiempo_promedio': 'Tiempo Prom.',
+            'tiempo_min': 'Tiempo Mín.', 'tiempo_max': 'Tiempo Máx.',
+            'total_game': 'Game', 'total_pregame': 'Pre-game',
+            'creaciones': 'Creaciones', 'ediciones': 'Ediciones',
+            'eliminaciones': 'Eliminaciones', 'duracion_total': 'Duración Total',
+            'duracion_promedio': 'Duración Prom.', 'videos_por_reel': 'Videos/Reel',
+        }
+        for m in metrics:
+            if m.key == 'total' and not isinstance(m.value, (int, float)):
+                continue
+            if isinstance(m.value, dict):
+                continue
+            label = label_map.get(m.key, m.key.replace('_', ' ').title())
+            try:
+                if m.unit == 'currency' and isinstance(m.value, (int, float)):
+                    value = f"${m.value:,.0f}"
+                elif m.unit == 'percent' and isinstance(m.value, (int, float)):
+                    value = f"{m.value:.1f}%"
+                elif m.unit == 'seconds' and isinstance(m.value, (int, float)):
+                    h, rem = divmod(int(m.value), 3600)
+                    mins, secs = divmod(rem, 60)
+                    value = f"{h}h {mins}m" if h else f"{mins}m {secs}s"
+                elif m.unit == 'days' and isinstance(m.value, (int, float)):
+                    value = f"{m.value:.1f} días"
+                elif isinstance(m.value, int):
+                    value = f"{m.value:,}"
+                elif isinstance(m.value, float):
+                    value = f"{m.value:,.1f}"
+                else:
+                    value = str(m.value)
+            except (ValueError, TypeError):
+                value = str(m.value)
+            story.append(Paragraph(
+                f"<font size='8' color='#475569'><b>{label}:</b> {value}</font>",
+                self.style_normal
+            ))
+        story.append(Spacer(1, 6))
+        return story
+
+    def _analytics_alertas(self, alerts):
+        story = []
+        severity_color = {
+            Severity.CRITICAL: '#dc2626',
+            Severity.WARNING: '#d97706',
+            Severity.INFO: '#2563eb',
+        }
+        severity_bg = {
+            Severity.CRITICAL: '#fef2f2',
+            Severity.WARNING: '#fffbeb',
+            Severity.INFO: '#eff6ff',
+        }
+        severity_label = {
+            Severity.CRITICAL: 'CRÍTICO',
+            Severity.WARNING: 'ALERTA',
+            Severity.INFO: 'INFO',
+        }
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#cbd5e1'), spaceAfter=4))
+        story.append(Paragraph("<b>Alertas Activas</b>", self.style_normal))
+        story.append(Spacer(1, 4))
+        for alert in alerts:
+            if alert.severity not in (Severity.CRITICAL, Severity.WARNING, Severity.INFO):
+                continue
+            color = severity_color.get(alert.severity, '#64748b')
+            bg = severity_bg.get(alert.severity, '#f8fafc')
+            label = severity_label.get(alert.severity, '?')
+            count_text = f" ({alert.affected_count} afectados)" if alert.affected_count else ""
+            story.append(Paragraph(
+                f"<font size='8' color='{color}'><b>[{label}]</b> {alert.title}{count_text}</font>",
+                self.style_normal
+            ))
+            if alert.description:
+                story.append(Paragraph(
+                    f"<font size='7' color='#64748b'>  {alert.description}</font>",
+                    self.style_normal
+                ))
+        story.append(Spacer(1, 6))
+        return story
+
+    def _analytics_insights(self, insights):
+        story = []
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#cbd5e1'), spaceAfter=4))
+        story.append(Paragraph("<b>Hallazgos Clave</b>", self.style_normal))
+        story.append(Spacer(1, 4))
+        for insight in insights[:5]:
+            story.append(Paragraph(
+                f"<font size='8' color='#334155'>• {insight.text}</font>",
+                self.style_normal
+            ))
+        story.append(Spacer(1, 6))
+        return story
+
+    def _analytics_rankings(self, rankings):
+        story = []
+        for ranking in rankings[:2]:
+            story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#cbd5e1'), spaceAfter=4))
+            story.append(Paragraph(f"<b>{ranking.label}</b>", self.style_normal))
+            story.append(Spacer(1, 4))
+            header = [Paragraph("<b>#</b>", self.style_bold),
+                      Paragraph("<b>Item</b>", self.style_bold),
+                      Paragraph("<b>Valor</b>", self.style_bold)]
+            rows = [header]
+            for i, item in enumerate(ranking.items[:5], 1):
+                val = f"{item.value:,}" if isinstance(item.value, (int, float)) else str(item.value)
+                rows.append([
+                    Paragraph(str(i), self.style_normal),
+                    Paragraph(str(item.item)[:30], self.style_normal),
+                    Paragraph(val, self.style_normal),
+                ])
+            t = Table(rows, colWidths=[40, 200, 100])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('PADDING', (0, 0), (-1, -1), 4),
+                ('LINEBELOW', (0, 0), (-1, -2), 0.3, colors.HexColor('#e2e8f0')),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+                ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+                ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+            ]))
+            story.append(t)
+            story.append(Spacer(1, 6))
+        return story
+
+    def _analytics_distributions(self, distributions):
+        story = []
+        for dist in distributions[:3]:
+            items = [(d.category, d.count) for d in dist.items]
+            story.extend(self._seccion_distribucion(dist.label, items))
+        return story
+
+    def _analytics_trends(self, trends):
+        story = []
+        for trend in trends[:2]:
+            story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#cbd5e1'), spaceAfter=4))
+            story.append(Paragraph(f"<b>{trend.label}</b>", self.style_normal))
+            story.append(Spacer(1, 4))
+            if trend.data:
+                header = [Paragraph("<b>Período</b>", self.style_bold),
+                          Paragraph("<b>Valor</b>", self.style_bold)]
+                rows = [header]
+                for p in trend.data[-6:]:
+                    rows.append([
+                        Paragraph(str(p.period), self.style_normal),
+                        Paragraph(str(p.value), self.style_normal),
+                    ])
+                t = Table(rows, colWidths=[200, 100])
+                t.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('PADDING', (0, 0), (-1, -1), 4),
+                    ('LINEBELOW', (0, 0), (-1, -2), 0.3, colors.HexColor('#e2e8f0')),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')]),
+                    ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                ]))
+                story.append(t)
+                story.append(Spacer(1, 6))
+        return story
 
     # ── Header ───────────────────────────────────────────────────────
     def _header(self, filtros=None):
@@ -274,6 +490,7 @@ class BaseReportGenerator:
     def generate(self, datos, filtros=None, kpis=None, opciones=None):
         buffer = io.BytesIO()
         opciones = opciones or {}
+        analytics = opciones.get('analytics')
 
         columnas = self._obtener_columnas(opciones)
         orientacion = opciones.get('orientacion', 'vertical')
@@ -327,6 +544,10 @@ class BaseReportGenerator:
         # Hook para distribuciones (override en subclases)
         story.extend(self._post_table_sections(kpis, opciones))
 
+        # Secciones de analítica (FASE 4E)
+        if analytics:
+            story.extend(self._seccion_analytics(analytics))
+
         story.append(Spacer(1, 20))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#cbd5e1')))
         story.append(Paragraph(
@@ -360,6 +581,18 @@ class BaseReportGenerator:
         story = []
         if not kpis:
             return story
+
+        def _fmt_val(k, v):
+            if isinstance(v, float) and ('monto' in k or 'promedio' in k or 'costo' in k):
+                return f"${v:,.0f}"
+            if isinstance(v, int) and 'seg' in k:
+                h, rem = divmod(v, 3600)
+                m, s = divmod(rem, 60)
+                return f"{h}h {m}m" if h else f"{m}m {s}s"
+            if isinstance(v, float) and 'pct' in k:
+                return f"{v}%"
+            return str(v)
+
         partes = []
         total = None
         for clave in ('total', 'total_pagos', 'total_registros', 'modulos'):
@@ -374,7 +607,7 @@ class BaseReportGenerator:
                 continue
             if k in ('total', 'total_pagos', 'total_registros', 'modulos') or len(detalles) >= 3:
                 continue
-            detalles.append(f"{str(k).replace('_', ' ')}: {v}")
+            detalles.append(f"{str(k).replace('_', ' ')}: {_fmt_val(k, v)}")
         if detalles:
             partes.append(' · '.join(detalles))
         if not partes:

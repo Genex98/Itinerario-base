@@ -7,8 +7,8 @@ class MantenimientoReport(BaseReportGenerator):
     MODULO = 'mantenimiento'
     TITULO = 'REPORTE DE MANTENIMIENTO'
     COLUMNAS = [
-        ('Recurso', 'recurso', 110), ('Estado', 'estado', 65),
-        ('Ingreso', 'ingreso', 65), ('Diagnóstico', 'diagnostico', 130),
+        ('Recurso', 'recurso_nombre', 110), ('Estado', 'estado', 65),
+        ('Ingreso', 'fecha_ingreso', 65), ('Diagnóstico', 'diagnostico', 130),
     ]
 
     def _post_table_sections(self, kpis, opciones):

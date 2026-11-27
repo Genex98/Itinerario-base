@@ -1,0 +1,7 @@
+# Resultados de las pruebas
+test-results/
+reporte.html
+.pytest_cache/
+__pycache__/
+*.pyc
+.DS_Store

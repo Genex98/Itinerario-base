@@ -7,9 +7,9 @@ class PremiosReport(BaseReportGenerator):
     MODULO = 'premios'
     TITULO = 'REPORTE DE PREMIOS'
     COLUMNAS = [
-        ('Nombre', 'nombre', 120), ('Patrocinador', 'patrocinador', 90),
-        ('Estado', 'estado', 55), ('Total', 'total', 35), ('Entreg.', 'entregados', 40),
-        ('Creación', 'creacion', 65),
+        ('Nombre', 'nombre', 120), ('Patrocinador', 'patrocinador_nombre', 90),
+        ('Estado', 'estado', 55), ('Total', 'cantidad', 35), ('Entreg.', 'cantidad_entregada', 40),
+        ('Creación', 'fecha_creacion', 65),
     ]
 
     def _post_table_sections(self, kpis, opciones):

@@ -7,8 +7,8 @@ class BitacoraReport(BaseReportGenerator):
     MODULO = 'bitacora'
     TITULO = 'REPORTE DE ACTIVIDAD / BITÁCORA'
     COLUMNAS = [
-        ('ID', 'id', 30), ('Usuario', 'usuario', 85), ('Acción', 'accion', 65),
-        ('Módulo', 'modulo', 65), ('Detalle', 'detalle', 145), ('Fecha', 'fecha', 75),
+        ('ID', 'id', 35), ('Usuario', 'usuario_nombre', 100), ('Acción', 'tipo_accion', 55),
+        ('Módulo', 'modulo', 75), ('Detalle', 'detalle', 130), ('Fecha', 'created_at', 80),
     ]
 
     def _post_table_sections(self, kpis, opciones):
@@ -25,6 +25,6 @@ class BitacoraReport(BaseReportGenerator):
             str(d.get('usuario_nombre', '—'))[:18],
             str(d.get('tipo_accion', '—')),
             str(d.get('modulo', '—')),
-            str(d.get('accion', '—'))[:30],
+            str(d.get('detalle', '—'))[:30],
             str(d.get('created_at', ''))[:16] if d.get('created_at') else '—',
         ] for d in datos]

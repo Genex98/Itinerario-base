@@ -1,0 +1,3 @@
+.......s                                                                 [100%]
+- Generated html report: file:///Users/yolianna/Documents/Proyecto/Itinerario/playwright/reporte.html -
+7 passed, 1 skipped in 9.94s

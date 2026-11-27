@@ -329,6 +329,54 @@ const MODULE_CONFIG = {
     },
 };
 
+// ---------------------------------------------------------------------------
+// Carga de definiciones desde backend (FASE 3 — fuente única de verdad)
+// ---------------------------------------------------------------------------
+const _definitionCache = {};
+
+async function loadDefinition(modulo) {
+    if (_definitionCache[modulo]) return _definitionCache[modulo];
+    try {
+        const resp = await fetch(`/reportes/definicion/${modulo}`, {
+            headers: {'X-CSRFToken': getCSRF()}
+        });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        _definitionCache[modulo] = data;
+        return data;
+    } catch { return null; }
+}
+
+function mergeConfig(modulo, defn) {
+    if (!defn) return MODULE_CONFIG[modulo];
+    const base = MODULE_CONFIG[modulo] || {};
+    let filters = base.filters;
+    if (defn.filters && Object.keys(defn.filters).length) {
+        filters = Object.entries(defn.filters).map(([key, f]) => ({
+            id: key,
+            label: f.label,
+            type: f.type,
+            options: f.options,
+            loadVia: f.load_via,
+            progressive: f.progressive,
+            dependsOn: f.depends_on,
+            placeholder: f.placeholder,
+            colClass: 'col-md-3',
+        }));
+    }
+    return {
+        ...base,
+        columns: (defn.columns || []).length ? defn.columns : base.columns,
+        filters,
+        kpiCards: (defn.kpi_cards || []).length ? defn.kpi_cards : base.kpiCards,
+        _definition: defn,
+    };
+}
+
+function getConfig(modulo) {
+    return _definitionCache[modulo] ? mergeConfig(modulo, _definitionCache[modulo]) : MODULE_CONFIG[modulo];
+}
+
 const MONEY_KEYS = ['monto', 'monto_total', 'capital', 'saldo', 'precio', 'monto_vigentes', 'monto_promedio', 'monto_min', 'monto_max'];
 
 let moduloActual = null;
@@ -372,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function () {
         abrirModulo(modulo, card);
     });
 
-    function abrirModulo(modulo, card) {
+    async function abrirModulo(modulo, card) {
         moduloGrid.querySelectorAll('.modulo-card').forEach(c => c.classList.remove('active'));
         if (card) card.classList.add('active');
         if (kpiPreviewCard) kpiPreviewCard.style.display = 'none';
@@ -381,7 +429,8 @@ document.addEventListener('DOMContentLoaded', function () {
         filterModuloNombre.textContent = card ? card.dataset.nombre : modulo;
         btnPreview.disabled = true;
 
-        const config = MODULE_CONFIG[modulo];
+        const defn = await loadDefinition(modulo);
+        const config = mergeConfig(modulo, defn);
         if (!config) {
             filterPanelBody.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-cog fa-spin me-2"></i>Configuración no disponible</div>';
             filterPanel.classList.add('open');
@@ -695,7 +744,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function obtenerValoresFiltros(modulo) {
-        const config = MODULE_CONFIG[modulo];
+        const config = getConfig(modulo);
         if (!config) return {};
         const vals = {};
         config.filters.forEach(f => {
@@ -711,7 +760,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     btnPreview.addEventListener('click', async function () {
         if (!moduloActual) return;
-        const config = MODULE_CONFIG[moduloActual];
+        const config = getConfig(moduloActual);
         if (!config) return;
 
         this.disabled = true;
@@ -756,9 +805,17 @@ document.addEventListener('DOMContentLoaded', function () {
             kpiGrid.innerHTML = cards.map(c => {
                 let val = data.kpis[c.key];
                 if (val === undefined || val === null) val = '—';
-                if (typeof val === 'string' && val.startsWith('$')) {
-                    const n = parseFloat(val.replace(/[$,]/g, ''));
-                    if (!isNaN(n)) val = '$' + n.toLocaleString('es-VE', { minimumFractionDigits: 0 });
+                const k = c.key;
+                if (typeof val === 'number') {
+                    if (k.includes('monto') || k.includes('costo') || k === 'promedio') {
+                        val = '$' + val.toLocaleString('es-VE', { minimumFractionDigits: 0 });
+                    } else if (k.includes('duracion') || k.includes('seg')) {
+                        const h = Math.floor(val / 3600);
+                        const m = Math.floor((val % 3600) / 60);
+                        val = h ? `${h}h ${m}m` : `${m}m`;
+                    } else if (k.includes('pct')) {
+                        val = val + '%';
+                    }
                 }
                 return `<div class="kpi-card-sm">
                     <div class="kpi-value" style="color:${c.color}">${val}</div>
@@ -767,6 +824,40 @@ document.addEventListener('DOMContentLoaded', function () {
             }).join('');
         } else {
             kpiGrid.innerHTML = '';
+        }
+
+        // FASE 4F: Analytics preview
+        const analyticsSection = document.getElementById('previewAnalytics');
+        if (analyticsSection && data.analytics) {
+            let html = '';
+
+            // Alertas
+            if (data.analytics.alerts && data.analytics.alerts.length > 0) {
+                const severityColors = { CRITICAL: '#dc2626', WARNING: '#d97706', INFO: '#2563eb' };
+                const severityBg = { CRITICAL: '#fef2f2', WARNING: '#fffbeb', INFO: '#eff6ff' };
+                const severityLabel = { CRITICAL: 'CRÍTICO', WARNING: 'ALERTA', INFO: 'INFO' };
+                html += '<div class="mb-2"><small class="fw-bold text-muted">ALERTAS</small></div>';
+                html += data.analytics.alerts.map(a => {
+                    const color = severityColors[a.severity] || '#64748b';
+                    const bg = severityBg[a.severity] || '#f8fafc';
+                    const label = severityLabel[a.severity] || '?';
+                    const count = a.affected_count ? ` (${a.affected_count} afectados)` : '';
+                    return `<div class="small py-1 px-2 mb-1 rounded" style="background:${bg};border-left:3px solid ${color}">
+                        <span class="fw-bold" style="color:${color}">[${label}]</span> ${a.title}${count}
+                    </div>`;
+                }).join('');
+            }
+
+            // Insights
+            if (data.analytics.insights && data.analytics.insights.length > 0) {
+                html += '<div class="mt-2 mb-2"><small class="fw-bold text-muted">HALLAZGOS</small></div>';
+                html += data.analytics.insights.map(i =>
+                    `<div class="small text-muted py-1">• ${i.text}</div>`
+                ).join('');
+            }
+
+            analyticsSection.innerHTML = html;
+            analyticsSection.style.display = html ? 'block' : 'none';
         }
 
         previewHead.innerHTML = '';
@@ -882,7 +973,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     btnLimpiarFiltros.addEventListener('click', function () {
         if (!moduloActual) return;
-        const config = MODULE_CONFIG[moduloActual];
+        const config = getConfig(moduloActual);
         if (!config) return;
         config.filters.forEach(f => {
             const el = document.getElementById(`filtro_${f.id}`);

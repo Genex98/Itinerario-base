@@ -27,6 +27,9 @@ PyMySQL==1.2.0
 # Generacion de PDFs
 reportlab>=4.0
 
+# Optimizacion de imagenes (app/helpers/image_optimizer.py)
+Pillow>=10.0
+
 # Servidor de produccion
 gunicorn>=22.0.0
 

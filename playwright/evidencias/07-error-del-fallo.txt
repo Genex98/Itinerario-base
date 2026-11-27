@@ -1,0 +1,30 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______________________ test_fallo_controlado[chromium] ________________________
+
+page = <Page url='http://127.0.0.1:5001/auth/login'>
+
+    def test_fallo_controlado(page: Page):
+        page.goto("/auth/login")
+        expect(page.locator("#email")).to_be_visible()
+>       expect(page.locator("#btnLogin")).to_have_text("Entrar")
+E       AssertionError: Locator expected to have text 'Entrar'
+E       Actual value: 
+E                  Ingresar
+E                
+E       Call log:
+E         - Expect "to_have_text" locator("#btnLogin") with timeout 5000ms
+E         - waiting for locator("#btnLogin")
+E           14 × locator resolved to <button type="submit" id="btnLogin" class="btn-login">…</button>
+E              - unexpected value "
+E                  Ingresar
+E               "
+E       
+E       Aria snapshot:
+E       - button " Ingresar"
+
+tests/test_fallo_temporal.py:7: AssertionError
+- Generated html report: file:///Users/yolianna/Documents/Proyecto/Itinerario/playwright/reporte.html -
+=========================== short test summary info ============================
+FAILED tests/test_fallo_temporal.py::test_fallo_controlado[chromium] - Assert...
+1 failed in 9.00s

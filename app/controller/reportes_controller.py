@@ -512,12 +512,30 @@ COLUMNAS_PREVIEW = {
 
 @bp.route('/campos/<modulo>', methods=['GET'])
 def campos_modulo(modulo):
-    from app.helpers.reportes_campos import CAMPOS_DISPONIBLES, COLUMNAS_DEFAULT
-    if modulo not in CAMPOS_DISPONIBLES:
+    from app.helpers.reportes_definition import get_fields, get_default_columns, get_all_modules
+    if modulo not in get_all_modules():
         return jsonify({'error': 'Modulo no valido'}), 400
     return jsonify({
-        'campos': CAMPOS_DISPONIBLES[modulo],
-        'defaults': COLUMNAS_DEFAULT.get(modulo, []),
+        'campos': get_fields(modulo),
+        'defaults': get_default_columns(modulo),
+    })
+
+
+@bp.route('/definicion/<modulo>', methods=['GET'])
+def definicion_modulo(modulo):
+    """Retorna la definición completa de un módulo para el frontend."""
+    from app.helpers.reportes_definition import get_definition, get_all_modules
+    if modulo not in get_all_modules():
+        return jsonify({'error': 'Modulo no valido'}), 400
+    defn = get_definition(modulo)
+    return jsonify({
+        'id': defn['id'],
+        'titulo': defn['titulo'],
+        'fields': defn['fields'],
+        'columns': [{'key': c[1], 'label': c[0]} for c in defn.get('columns', [])],
+        'default_columns': defn.get('default_columns', []),
+        'filters': defn.get('filters', {}),
+        'kpi_cards': defn.get('kpi_cards', []),
     })
 
 
@@ -551,7 +569,8 @@ def preview():
 
         datos, kpis = _obtener_datos(modulo, filtros)
         datos = _ordenar_datos(datos, sort_by, sort_dir)
-        cols = COLUMNAS_PREVIEW.get(modulo)
+        from app.helpers.reportes_definition import get_columns_preview
+        cols = get_columns_preview(modulo)
         if cols:
             col_keys = [c['key'] for c in cols]
             datos = [{k: d.get(k) for k in col_keys} for d in datos]
@@ -562,11 +581,25 @@ def preview():
                 continue
             kpis_display[k] = v
 
+        # FASE 4F: Analytics para preview
+        from app.helpers.reportes_module_analytics import run_analytics
+        analytics_result = run_analytics(modulo, datos)
+        analytics_display = {
+            'metrics': [{'key': m.key, 'label': m.key.replace('_', ' ').title(),
+                         'value': m.value, 'unit': m.unit} for m in analytics_result.metrics],
+            'alerts': [{'id': a.id, 'title': a.title, 'description': a.description,
+                        'severity': a.severity.value, 'affected_count': a.affected_count}
+                       for a in analytics_result.alerts],
+            'insights': [{'key': i.key, 'text': i.text, 'severity': i.severity.value}
+                         for i in analytics_result.insights],
+        }
+
         resp = {
             'datos': datos[:100],
             'total': len(datos),
             'kpis': kpis_display,
             'modulo': MODULOS_DISPONIBLES[modulo]['nombre'],
+            'analytics': analytics_display,
         }
         if cols:
             resp['columnas'] = cols
@@ -599,9 +632,9 @@ def generar():
             opciones['top_n'] = top_n
 
         # columnas dinámicas (whitelist server-side)
-        from app.helpers.reportes_campos import CAMPOS_DISPONIBLES
+        from app.helpers.reportes_definition import get_fields
         col_ids = request.form.getlist('columnas_seleccionadas')
-        campos_mod = CAMPOS_DISPONIBLES.get(modulo, {})
+        campos_mod = get_fields(modulo)
         col_validas = [c for c in col_ids if c in campos_mod]
         if col_validas:
             opciones['columnas_seleccionadas'] = col_validas
@@ -625,6 +658,11 @@ def generar():
         if not datos:
             return jsonify({'error': 'No hay datos para los filtros seleccionados'}), 400
 
+        # FASE 4E: Ejecutar analítica por módulo
+        from app.helpers.reportes_module_analytics import run_analytics
+        analytics_result = run_analytics(modulo, datos)
+        opciones['analytics'] = analytics_result
+
         # comparativa: misma consulta con el rango desplazado hacia atrás
         if opciones['comparar']:
             fi = _parsear_fecha(filtros.get('fecha_inicio', ''))
@@ -643,7 +681,8 @@ def generar():
         datos = _ordenar_datos(datos, sort_by, sort_dir)
         if sort_by:
             label = sort_by
-            cols = COLUMNAS_PREVIEW.get(modulo, [])
+            from app.helpers.reportes_definition import get_columns_preview
+            cols = get_columns_preview(modulo)
             for c in cols:
                 if c['key'] == sort_by:
                     label = c['label']

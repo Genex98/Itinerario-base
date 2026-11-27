@@ -7,8 +7,8 @@ class TareasReport(BaseReportGenerator):
     MODULO = 'tareas'
     TITULO = 'REPORTE DE TAREAS'
     COLUMNAS = [
-        ('Tarea', 'tarea', 150), ('Estado', 'estado', 65),
-        ('Asignado a', 'asignado', 80), ('Fecha', 'fecha', 75),
+        ('Tarea', 'nombre_tarea', 150), ('Estado', 'estado', 65),
+        ('Asignado a', 'asignado_a', 80), ('Fecha', 'fecha_asignacion_tarea', 75),
     ]
 
     def _post_table_sections(self, kpis, opciones):
