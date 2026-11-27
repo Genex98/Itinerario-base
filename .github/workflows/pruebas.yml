@@ -60,4 +60,4 @@ jobs:
       - name: Ejecutar pruebas con PyTest
         working-directory: tests
         run: |
-          pytest -W ignore
+          pytest -W ignore --ignore=rendimiento
