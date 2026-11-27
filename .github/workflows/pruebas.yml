@@ -2,7 +2,7 @@ name: Pruebas - Estadio y Seguridad
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main", "develop", "gene" ]
   pull_request:
     branches: [ "main" ]
 
