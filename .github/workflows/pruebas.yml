@@ -56,8 +56,21 @@ jobs:
             CREATE DATABASE IF NOT EXISTS estadio_db_test DEFAULT CHARACTER SET utf8mb4;
             CREATE DATABASE IF NOT EXISTS seguridad_test DEFAULT CHARACTER SET utf8mb4;
           "
-
+          
       - name: Ejecutar pruebas con PyTest
-        working-directory: tests
         run: |
+          # Arrancar servidor Flask en segundo plano en el puerto 5001
+          FLASK_RUN_PORT=5001 python run.py &
+          
+          # Esperar hasta 15 segundos a que el puerto 5001 responda
+          for i in {1..15}; do
+            if curl -s http://127.0.0.1:5001 > /dev/null; then
+              echo "Servidor Flask listo en puerto 5001"
+              break
+            fi
+            sleep 1
+          done
+
+          # Ejecutar todas las pruebas
+          cd tests
           pytest -W ignore --ignore=rendimiento
