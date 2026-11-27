@@ -1,10 +1,10 @@
-name: Pruebas - Estadio y Seguridad
+python -c "content = '''name: Pruebas - Estadio y Seguridad
 
 on:
   push:
-    branches: [ "main", "develop", "gene" ]
+    branches: [ \"main\", \"develop\", \"gene\" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ \"main\" ]
 
 jobs:
   pytest-suite:
@@ -18,7 +18,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-cmd=\"mysqladmin ping -h 127.0.0.1 -uroot -proot\"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -30,7 +30,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: \"3.11\"
           cache: 'pip'
 
       - name: Instalar dependencias
@@ -49,12 +49,13 @@ jobs:
           FLASK_ENV=testing
           EOF
 
-          mysql -h 127.0.0.1 -u root -e "
+          mysql -h 127.0.0.1 -u root -e \"
             CREATE DATABASE IF NOT EXISTS estadio_db_test DEFAULT CHARACTER SET utf8mb4;
             CREATE DATABASE IF NOT EXISTS seguridad_test DEFAULT CHARACTER SET utf8mb4;
-          "
+          \"
 
-       - name: Ejecutar pruebas con PyTest
+      - name: Ejecutar pruebas con PyTest
         working-directory: tests
         run: |
           pytest -W ignore
+'''; open('.github/workflows/pruebas.yml', 'w', encoding='utf-8').write(content)"
