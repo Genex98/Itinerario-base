@@ -1,3 +1,4 @@
+import pymysql
 from app.database import Database, transaction
 import logging
 
@@ -180,12 +181,14 @@ class RolModel(ValidacionesMixin):
                 for tabla in ['permisos', 'roles', 'rol_permiso']:
                     try:
                         cur.execute(f"ALTER TABLE {tabla} ADD PRIMARY KEY (id)")
-                    except Exception:
-                        logger.exception('Error de base de datos')
+                    except pymysql.err.OperationalError as e:
+                        if e.args[0] != 1068:  # 1068 = Multiple primary key defined
+                            raise
                     try:
                         cur.execute(f"ALTER TABLE {tabla} MODIFY id int(11) NOT NULL AUTO_INCREMENT")
                     except Exception:
                         logger.exception('Error de base de datos')
+                        
         except Exception:
             logger.exception('Error de base de datos')
 
