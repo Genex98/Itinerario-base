@@ -54,7 +54,7 @@ jobs:
             CREATE DATABASE IF NOT EXISTS seguridad_test DEFAULT CHARACTER SET utf8mb4;
           "
 
-      - name: Ejecutar pruebas con PyTest
-        working-directory: test
+       - name: Ejecutar pruebas con PyTest
+        working-directory: tests
         run: |
           pytest -W ignore
